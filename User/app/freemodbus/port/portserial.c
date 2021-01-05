@@ -25,15 +25,11 @@
 #include "mb.h"
 #include "mbport.h"
 #include "uart_dev.h"
-/* ----------------------- Static variables ---------------------------------*/
+/* -----------------------  variables ---------------------------------*/
+volatile uint8_t rx_idle_cnt=0;
+volatile uint8_t rx_enable=1;
+volatile uint8_t tx_enable=0;
 
-/* ----------------------- Defines ------------------------------------------*/
-/* serial transmit event */
-#define EVENT_SERIAL_TRANS_START    (1<<0)
-
-uint8_t rx_idle_cnt=5;
-uint8_t rx_enable=1;
-uint8_t tx_enable=0;
 /* ----------------------- static functions ---------------------------------*/
 static void prvvUARTTxReadyISR(void);
 static void prvvUARTRxISR(void);
@@ -117,15 +113,16 @@ void prvvUARTTxReadyISR(void)
 
 void prvvUARTRxISR(void)
 {
-    rx_idle_cnt = 1;
+    rx_idle_cnt = 0;
     if(rx_enable)
       pxMBFrameCBByteReceived();
 }
 
 void mb_waitidle(void)
 {
+    extern uint8_t mb_time_enable;
     osDelay(5);
-    if(rx_enable && rx_idle_cnt>0 && rx_idle_cnt++>2)
+    if(mb_time_enable && ++rx_idle_cnt>=3)
     {
       rx_idle_cnt = 0;
       extern void prvvTIMERExpiredISR(void);

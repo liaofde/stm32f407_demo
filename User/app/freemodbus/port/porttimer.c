@@ -28,22 +28,22 @@
 
 /* ----------------------- static functions ---------------------------------*/
 void prvvTIMERExpiredISR(void);
-
+volatile uint8_t mb_time_enable = 0;
 /* ----------------------- Start implementation -----------------------------*/
 BOOL xMBPortTimersInit(USHORT usTim1Timerout50us)
 {
-  
+    mb_time_enable = 0;
     return TRUE;
 }
 
 void vMBPortTimersEnable()
 {
-
+    mb_time_enable = 1;
 }
 
 void vMBPortTimersDisable()
 {
-   
+    mb_time_enable = 0;
 }
 
 void prvvTIMERExpiredISR(void)
