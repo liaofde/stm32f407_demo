@@ -1,0 +1,16 @@
+import os
+Import('env')
+
+board = env['board']
+
+if(env['board']=='yt_tr300'):
+	src = Glob('*.c')
+	objs = env.Object(src)
+   
+	src = Glob('*.cpp')
+	objs += env.Object(src)
+      
+	Return('objs')
+else:
+   objs = ' '
+   Return('')
