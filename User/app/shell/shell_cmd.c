@@ -6,6 +6,7 @@
 #include "shell_cmd.h"
 #include "main.h"
 
+#define CMD_EXECUTE_ECHO "Command is executing"
 
 void tcplog_normal(void)
 {

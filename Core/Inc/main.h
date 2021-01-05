@@ -51,6 +51,8 @@ extern "C" {
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
 
+#define FW_VERSION "v0.0.1"
+
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/

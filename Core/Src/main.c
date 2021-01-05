@@ -28,7 +28,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "bsp.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -91,16 +91,8 @@ int main(void)
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_USART1_UART_Init();
-  MX_UART4_Init();
-  MX_CAN1_Init();
-  MX_FSMC_Init();
-  MX_USART6_UART_Init();
-  MX_SPI1_Init();
-  MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
-  
+  bsp_inition();
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in freertos.c) */
