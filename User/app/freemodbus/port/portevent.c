@@ -29,17 +29,26 @@
 #include <cmsis_os.h>
 
 /* ----------------------- Variables ----------------------------------------*/
-//static struct rt_event     xSlaveOsEvent;
-static xQueueHandle xQueueHdl;
+#define xUSE_OS_MESSAGE
 
+#ifdef USE_OS_MESSAGE
+osMessageQId mb_slave_message  =  NULL;
+osMessageQDef(mb_slave_message, 2, eMBEventType);
+#else
+static xQueueHandle xQueueHdl;
+#endif
 
 /* ----------------------- Start implementation -----------------------------*/
 BOOL
 xMBPortEventInit( void )
 {
-  //rt_event_init(&xSlaveOsEvent,"slave event",RT_IPC_FLAG_PRIO);
   BOOL bStatus = FALSE;
+  
+#ifdef USE_OS_MESSAGE
+  if((mb_slave_message = osMessageCreate(osMessageQ(mb_slave_message),NULL)) != NULL)
+#else
   if( 0 != ( xQueueHdl = xQueueCreate( 1, sizeof( eMBEventType ) ) ) )
+#endif
   {
     bStatus = TRUE;
   }
@@ -49,26 +58,38 @@ xMBPortEventInit( void )
 void
 vMBPortEventClose( void )
 {
+#ifdef USE_OS_MESSAGE
+  if(mb_slave_message)
+  {
+    osMessageDelete(mb_slave_message);
+  }
+#else
   if( 0 != xQueueHdl )
   {
     vQueueDelete( xQueueHdl );
     xQueueHdl = 0;
   }
+#endif
 }
 
 BOOL
 xMBPortEventPost( eMBEventType eEvent )
 {
   BOOL bStatus = TRUE;
+  
+#ifdef USE_OS_MESSAGE
+  if(osOK != osMessagePut(mb_slave_message, (uint32_t)eEvent , 0))
+    bStatus = FALSE; 
+#else
   if( __get_IPSR() != 0)
   {
-    ( void )xQueueSendFromISR( xQueueHdl, ( const void * )&eEvent, pdFALSE );
+    ( void )xQueueSendFromISR( xQueueHdl, ( const void * )&eEvent, NULL );
   }
   else
   {
-    ( void )xQueueSend( xQueueHdl, ( const void * )&eEvent, pdFALSE );
+    ( void )xQueueSend( xQueueHdl, ( const void * )&eEvent, 0 );
   }
-  
+#endif
   return bStatus;
 }
 
@@ -77,9 +98,19 @@ xMBPortEventGet( eMBEventType * eEvent )
 {
   BOOL xEventHappened = FALSE;
   
+#ifdef USE_OS_MESSAGE
+  osEvent os_event;
+  os_event = osMessageGet(mb_slave_message, 0);
+  if(os_event.status == osEventMessage)
+  {
+    *eEvent =  (eMBEventType)os_event.value.v;
+    xEventHappened = TRUE;
+  }
+#else
   if( pdTRUE == xQueueReceive( xQueueHdl, eEvent, 0 ) )
   {
     xEventHappened = TRUE;
   }
+#endif
   return xEventHappened;
 }
