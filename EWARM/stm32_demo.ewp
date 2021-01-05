@@ -2,7 +2,7 @@
 <project>
   <fileVersion>3</fileVersion>
   <configuration>
-    <name>stm32_shell</name>
+    <name>stm32_demo</name>
     <toolchain>
       <name>ARM</name>
     </toolchain>
@@ -16,15 +16,15 @@
         <debug>1</debug>
         <option>
           <name>ExePath</name>
-          <state>stm32_shell/Exe</state>
+          <state>stm32_demo/Exe</state>
         </option>
         <option>
           <name>ObjPath</name>
-          <state>stm32_shell/Obj</state>
+          <state>stm32_demo/Obj</state>
         </option>
         <option>
           <name>ListPath</name>
-          <state>stm32_shell/List</state>
+          <state>stm32_demo/List</state>
         </option>
         <option>
           <name>GEndianMode</name>
@@ -671,7 +671,7 @@
         </option>
         <option>
           <name>OOCOutputFile</name>
-          <state>stm32_shell.hex</state>
+          <state>stm32_demo.hex</state>
         </option>
         <option>
           <name>OOCCommandLineProducer</name>
@@ -726,7 +726,7 @@
         </option>
         <option>
           <name>IlinkOutputFile</name>
-          <state>stm32_shell.out</state>
+          <state>stm32_demo.out</state>
         </option>
         <option>
           <name>IlinkDebugInfoEnable</name>
@@ -1023,7 +1023,7 @@
         </option>
         <option>
           <name>IlinkTrustzoneImportLibraryOut</name>
-          <state>stm32_shell_import_lib.o</state>
+          <state>stm32_demo_import_lib.o</state>
         </option>
         <option>
           <name>OILinkExtraOption</name>
@@ -1204,7 +1204,7 @@
           <group>
             <name>master402</name>
             <excluded>
-              <configuration>stm32_shell</configuration>
+              <configuration>stm32_demo</configuration>
             </excluded>
             <file>
               <name>$PROJ_DIR$\..\User\app\canopen\master402\canopen_callback.c</name>
@@ -1239,7 +1239,7 @@
             <file>
               <name>$PROJ_DIR$\..\User\app\canopen\ptz_horiz\ptz_horiz_objdict.c</name>
               <excluded>
-                <configuration>stm32_shell</configuration>
+                <configuration>stm32_demo</configuration>
               </excluded>
             </file>
             <file>

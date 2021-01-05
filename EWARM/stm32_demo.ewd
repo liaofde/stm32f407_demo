@@ -2,7 +2,7 @@
 <project>
     <fileVersion>3</fileVersion>
     <configuration>
-        <name>stm32_shell</name>
+        <name>stm32_demo</name>
         <toolchain>
             <name>ARM</name>
         </toolchain>
