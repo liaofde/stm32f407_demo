@@ -34,26 +34,38 @@ volatile uint8_t tx_enable=0;
 static void prvvUARTTxReadyISR(void);
 static void prvvUARTRxISR(void);
 
+static void rs485_rxen(void)
+{
+  UART2_RS485_RE;
+}
+
+static void rs485_txen(void)
+{
+  UART2_RS485_TE;
+}
+
 uart_dev_t mb_uart_dev={
   .specific_rx_isv = prvvUARTRxISR,
   .specific_tx_isv = prvvUARTTxReadyISR,
 };
 
 static UART_InitTypeDef initInfo = {
-  .BaudRate = 19200,
-  .WordLength = UART_WORDLENGTH_8B,
+  //.BaudRate = 19200,
+  //.WordLength = UART_WORDLENGTH_8B,
+  //.Parity = UART_PARITY_EVEN,
   .StopBits = UART_STOPBITS_1,
-  .Parity = UART_PARITY_EVEN,
   .Mode = UART_MODE_TX_RX,
   .HwFlowCtl = UART_HWCONTROL_NONE,
   .OverSampling = UART_OVERSAMPLING_16,
 };
 
 uart_dev_arg_t mb_uart_dev_arg = {
-  .huart = &huart3,
-  .USART = USART3,
+  .huart = &huart2,
+  .USART = USART2,
   .InitInfo = &initInfo,
   .rx_ringbuff_size = 16,
+  .rs485_rxen =  rs485_rxen,
+  .rs485_txen =  rs485_txen
 };
 
 void mb_uart_dev_init( ULONG ulBaudRate, UCHAR ucDataBits,eMBParity eParity)

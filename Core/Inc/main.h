@@ -65,8 +65,11 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define SPI1_CS_Pin GPIO_PIN_14
 #define SPI1_CS_GPIO_Port GPIOB
+#define RS485_RE_Pin GPIO_PIN_8
+#define RS485_RE_GPIO_Port GPIOG
 /* USER CODE BEGIN Private defines */
-
+#define UART2_RS485_RE  HAL_GPIO_WritePin(RS485_RE_GPIO_Port, RS485_RE_Pin, GPIO_PIN_RESET);
+#define UART2_RS485_TE  HAL_GPIO_WritePin(RS485_RE_GPIO_Port, RS485_RE_Pin, GPIO_PIN_SET);
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

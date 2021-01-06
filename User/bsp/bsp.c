@@ -19,6 +19,7 @@ void bsp_inition(void)
   MX_FSMC_Init();
   MX_USART6_UART_Init();
   MX_SPI1_Init();
-  MX_USART3_UART_Init();
+  //MX_USART3_UART_Init();
+  //MX_USART2_UART_Init();
 }
 
