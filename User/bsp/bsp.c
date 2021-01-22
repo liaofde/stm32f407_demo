@@ -13,7 +13,7 @@
 void bsp_inition(void)
 {
   MX_GPIO_Init();
-  MX_USART1_UART_Init();
+  //MX_USART1_UART_Init();
   MX_UART4_Init();
   MX_CAN1_Init();
   MX_FSMC_Init();
