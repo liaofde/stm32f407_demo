@@ -13,10 +13,11 @@
 #include "cmsis_os.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "uart_bsp.h"
 
 
 #define SLAVE_ADDR      0x01
-#define PORT_NUM        3
+#define PORT_NUM        UART2_OBJ
 #define PORT_BAUDRATE   115200
 #define PORT_PARITY     MB_PAR_EVEN
 

@@ -8,38 +8,11 @@
 #include "usrapi.h"
 
 
-#ifdef SHELL_UART_UART4
-#define UART   UART4
-#define handle huart4
-#else
-#define UART   USART1
-#define handle huart1
-#endif
-
 osThreadId ShellTaskHandle;
 
-uart_dev_t shell_uart_dev;
-
-UART_InitTypeDef initInfo = {
-  .BaudRate = 115200,
-  .WordLength = UART_WORDLENGTH_8B,
-  .StopBits = UART_STOPBITS_1,
-  .Parity = UART_PARITY_NONE,
-  .Mode = UART_MODE_TX_RX,
-  .HwFlowCtl = UART_HWCONTROL_NONE,
-  .OverSampling = UART_OVERSAMPLING_16,
-};
-
-uart_dev_arg_t shell_uart_dev_arg = {
-  .huart = &handle,
-  .USART = UART,
-  .InitInfo = &initInfo,
-  .rx_ringbuff_size = 256,
-};
-
-void shell_uart_dev_init(void)
+void shell_uart_obj_init(void)
 {
-  uart_dev_open(&shell_uart_dev, &shell_uart_dev_arg);
+  uart_obj_open(UART1_OBJ, 115200, UART_PARITY_NONE, UART_WORDLENGTH_8B, UART_STOPBITS_1);
 }
 
 uint8_t buf[64];
@@ -118,7 +91,7 @@ static void shell_push_history(struct finsh_shell *shell)
 void ShellTask(void const * argument)
 {
   /* USER CODE BEGIN ShellTask */
-  shell_uart_dev_init();
+  shell_uart_obj_init();
   finsh_shell_t *shell = &finsh_shell;
   uint8_t offset;
   uint8_t ch;
@@ -128,7 +101,7 @@ void ShellTask(void const * argument)
 
   while(1)
   {
-    len = uart_dev_read(&shell_uart_dev, buf,64, 0xffffffff);
+    len = uart_obj_read(UART1_OBJ, buf,64, 0xffffffff);
     offset = 0;
     while(offset < len)
     {

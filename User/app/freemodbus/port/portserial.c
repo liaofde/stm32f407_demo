@@ -24,7 +24,7 @@
 /* ----------------------- Modbus includes ----------------------------------*/
 #include "mb.h"
 #include "mbport.h"
-#include "uart_dev.h"
+#include "uart_bsp.h"
 /* -----------------------  variables ---------------------------------*/
 volatile uint8_t rx_idle_cnt=0;
 volatile uint8_t rx_enable=1;
@@ -44,44 +44,26 @@ static void rs485_txen(void)
   UART2_RS485_TE;
 }
 
-uart_dev_t mb_uart_dev={
-  .specific_rx_isv = prvvUARTRxISR,
-  .specific_tx_isv = prvvUARTTxReadyISR,
-};
-
-static UART_InitTypeDef initInfo = {
-  //.BaudRate = 19200,
-  //.WordLength = UART_WORDLENGTH_8B,
-  //.Parity = UART_PARITY_EVEN,
-  .StopBits = UART_STOPBITS_1,
-  .Mode = UART_MODE_TX_RX,
-  .HwFlowCtl = UART_HWCONTROL_NONE,
-  .OverSampling = UART_OVERSAMPLING_16,
-};
-
-uart_dev_arg_t mb_uart_dev_arg = {
-  .huart = &huart2,
-  .USART = USART2,
-  .InitInfo = &initInfo,
-  .rx_ringbuff_size = 16,
-  .rs485_rxen =  rs485_rxen,
-  .rs485_txen =  rs485_txen
-};
-
-void mb_uart_dev_init( ULONG ulBaudRate, UCHAR ucDataBits,eMBParity eParity)
+void mb_uart_obj_init( ULONG ulBaudRate, UCHAR ucDataBits,eMBParity eParity)
 {
-  initInfo.BaudRate = ulBaudRate;
+  uint32_t WordLength;
+  uint32_t Parity;
+  
   if(eParity!=MB_PAR_NONE)
-    initInfo.WordLength = UART_WORDLENGTH_9B;
-  initInfo.Parity = (eParity==MB_PAR_NONE)?UART_PARITY_NONE:(eParity==MB_PAR_ODD)?UART_PARITY_ODD:UART_PARITY_EVEN;
-  uart_dev_open(&mb_uart_dev, &mb_uart_dev_arg);
+    WordLength = UART_WORDLENGTH_9B;
+  else
+    WordLength = UART_WORDLENGTH_8B;
+  Parity = (eParity==MB_PAR_NONE)?UART_PARITY_NONE:(eParity==MB_PAR_ODD)?UART_PARITY_ODD:UART_PARITY_EVEN;
+  uart_obj_open(UART2_OBJ, ulBaudRate, eParity, WordLength,  UART_STOPBITS_1);
+  uart_obj_ioctl_rs485_register(UART2_OBJ, rs485_rxen, rs485_txen);
+  uart_obj_ioctl_specific_rtx_isr_register(UART2_OBJ, prvvUARTRxISR, prvvUARTTxReadyISR);
 }
 
 /* ----------------------- Start implementation -----------------------------*/
 BOOL xMBPortSerialInit(UCHAR ucPORT, ULONG ulBaudRate, UCHAR ucDataBits,
         eMBParity eParity)
 {
-    mb_uart_dev_init(ulBaudRate,ucDataBits,eParity);
+    mb_uart_obj_init(ulBaudRate,ucDataBits,eParity);
     return TRUE;
 }
 
@@ -94,13 +76,14 @@ void vMBPortSerialEnable(BOOL xRxEnable, BOOL xTxEnable)
 
 BOOL xMBPortSerialPutByte(CHAR ucByte)
 {
-    uart_dev_write(&mb_uart_dev, (uint8_t *)&ucByte,1);
+    uart_obj_write(UART2_OBJ, (uint8_t *)&ucByte,1);
     return TRUE;
 }
 
 BOOL xMBPortSerialGetByte(CHAR * pucByte)
 {
-    *pucByte = mb_uart_dev_arg.rxbyte;
+    uart_obj_read(UART2_OBJ, (uint8_t *)pucByte, 1, 0);
+    //*pucByte = uart_obj_list[UART2_OBJ].rxbyte;
     return TRUE;
 }
 
