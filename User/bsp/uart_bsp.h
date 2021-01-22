@@ -9,27 +9,27 @@
 #include "semphr.h"   
 #include "stream_buffer.h"
 
-#define UART1_ENABLE
-#define UART2_ENABLE
-#define UART3_ENABLE
-#define UART4_ENABLE
-#define xUART5_ENABLE
+#define UART1_OBJ_EN
+#define UART2_OBJ_EN
+#define UART3_OBJ_EN
+#define UART4_OBJ_EN
+#define xUART5_OBJ_EN
 
 typedef enum
 {
-#ifdef UART1_ENABLE
+#ifdef UART1_OBJ_EN
   UART1_OBJ,
 #endif
-#ifdef UART2_ENABLE
+#ifdef UART2_OBJ_EN
   UART2_OBJ,
 #endif
-#ifdef UART3_ENABLE
+#ifdef UART3_OBJ_EN
   UART3_OBJ,
 #endif
-#ifdef UART4_ENABLE
+#ifdef UART4_OBJ_EN
   UART4_OBJ,
 #endif
-#ifdef UART5_ENABLE
+#ifdef UART5_OBJ_EN
   UART5_OBJ,
 #endif
   UART_OBJ_NUM_MAX

@@ -54,7 +54,7 @@ void mb_uart_obj_init( ULONG ulBaudRate, UCHAR ucDataBits,eMBParity eParity)
   else
     WordLength = UART_WORDLENGTH_8B;
   Parity = (eParity==MB_PAR_NONE)?UART_PARITY_NONE:(eParity==MB_PAR_ODD)?UART_PARITY_ODD:UART_PARITY_EVEN;
-  uart_obj_open(UART2_OBJ, ulBaudRate, eParity, WordLength,  UART_STOPBITS_1);
+  uart_obj_open(UART2_OBJ, ulBaudRate, Parity , WordLength,  UART_STOPBITS_1);
   uart_obj_ioctl_rs485_register(UART2_OBJ, rs485_rxen, rs485_txen);
   uart_obj_ioctl_specific_rtx_isr_register(UART2_OBJ, prvvUARTRxISR, prvvUARTTxReadyISR);
 }
