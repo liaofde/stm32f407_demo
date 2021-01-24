@@ -14,6 +14,7 @@
 #define UART3_OBJ_EN
 #define UART4_OBJ_EN
 #define xUART5_OBJ_EN
+#define xUART6_OBJ_EN
 
 typedef enum
 {
@@ -31,6 +32,9 @@ typedef enum
 #endif
 #ifdef UART5_OBJ_EN
   UART5_OBJ,
+#endif
+#ifdef UART6_OBJ_EN
+  UART6_OBJ,
 #endif
   UART_OBJ_NUM_MAX
 }uart_obj_id_t;
@@ -54,6 +58,14 @@ typedef struct _uart_obj
   uint8_t             rxbyte;
 }uart_obj_t;
 
+typedef struct
+{
+  uint32_t BaudRate;
+  uint32_t Parity;
+  uint32_t WordLength;
+  uint32_t StopBits;
+}uart_var_t;
+
 void uart_obj_close(uart_obj_id_t obj_id);
 int uart_obj_open(uart_obj_id_t obj_id, uint32_t baudrate, uint32_t parity, uint32_t databits, uint32_t stopbits);
 int uart_obj_read(uart_obj_id_t obj_id, uint8_t *buf, int size, uint32_t timeout);
@@ -61,6 +73,8 @@ int uart_obj_write(uart_obj_id_t obj_id, uint8_t *buf, int size);
 int uart_obj_ioctl(uart_obj_id_t obj_id, uint32_t baudrate, uint32_t parity, uint32_t databits, uint32_t stopbits);
 int uart_obj_ioctl_rs485_register(uart_obj_id_t obj_id, void(*rs485_rxen)(void), void (*rs485_txen)(void) );
 int uart_obj_ioctl_specific_rtx_isr_register(uart_obj_id_t obj_id, void(*specific_rx_isr)(void), void (*specific_tx_isr)(void) );
+int uart_obj_ioctl_get_info(uart_obj_id_t obj_id, uint32_t *baudrate, uint32_t *parity, uint32_t *databits, uint32_t *stopbits);
+int uart_obj_ioctl_alloc_rx_buffer(uart_obj_id_t obj_id, uint16_t size);
 uint8_t uart_obj_write_is_busy(uart_obj_id_t obj_id);
 uint8_t uart_obj_read_is_busy(uart_obj_id_t obj_id);
 

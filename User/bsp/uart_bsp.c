@@ -45,12 +45,14 @@ int uart_obj_open(uart_obj_id_t obj_id, uint32_t baudrate, uint32_t parity, uint
   if(obj_id >= UART_OBJ_NUM_MAX)
     return -1;
   
-  if(uart_obj_tbl[obj_id].rx_buffer_size<256)
-    uart_obj_tbl[obj_id].rx_buffer_size = 256;
-  else if(uart_obj_tbl[obj_id].rx_buffer_size > 1024)
-    uart_obj_tbl[obj_id].rx_buffer_size = 1024;
-  
-  uart_obj_tbl[obj_id].rx_buffer = xStreamBufferCreate( uart_obj_tbl[obj_id].rx_buffer_size, uart_obj_tbl[obj_id].rx_buffer_size/2 );
+  if(uart_obj_tbl[obj_id].rx_buffer == NULL)
+  {
+    if(uart_obj_tbl[obj_id].rx_buffer_size<256)
+      uart_obj_tbl[obj_id].rx_buffer_size = 256;
+    else if(uart_obj_tbl[obj_id].rx_buffer_size > 1024)
+      uart_obj_tbl[obj_id].rx_buffer_size = 1024;
+    uart_obj_tbl[obj_id].rx_buffer = xStreamBufferCreate( uart_obj_tbl[obj_id].rx_buffer_size, uart_obj_tbl[obj_id].rx_buffer_size/2 );
+  }
   if( uart_obj_tbl[obj_id].rx_buffer == NULL )
     return -1;
   
@@ -94,6 +96,13 @@ int uart_obj_open(uart_obj_id_t obj_id, uint32_t baudrate, uint32_t parity, uint
   {
     uart_obj_tbl[obj_id].huart=&huart5;
     uart_obj_tbl[obj_id].huart->Instance = UART5;
+  }
+#endif
+#ifdef UART6_OBJ_EN
+  else if(obj_id == UART6_OBJ) 
+  {
+    uart_obj_tbl[obj_id].huart=&huart6;
+    uart_obj_tbl[obj_id].huart->Instance = USART6;
   }
 #endif
   
@@ -154,6 +163,33 @@ int uart_obj_ioctl_specific_rtx_isr_register(uart_obj_id_t obj_id, void(*specifi
     uart_obj_tbl[obj_id].specific_rx_isr = specific_rx_isr;
   if(specific_tx_isr != NULL)
     uart_obj_tbl[obj_id].specific_tx_isr = specific_tx_isr;
+  return 0;
+}
+
+int uart_obj_ioctl_get_info(uart_obj_id_t obj_id, uint32_t *baudrate, uint32_t *parity, uint32_t *databits, uint32_t *stopbits)
+{
+  *baudrate = uart_obj_tbl[obj_id].huart->Init.BaudRate;
+  *databits = uart_obj_tbl[obj_id].huart->Init.WordLength;
+  *stopbits = uart_obj_tbl[obj_id].huart->Init.StopBits;
+  *parity   = uart_obj_tbl[obj_id].huart->Init.Parity;
+  
+  return 0;
+}
+
+int uart_obj_ioctl_alloc_rx_buffer(uart_obj_id_t obj_id, uint16_t size)
+{
+  taskENTER_CRITICAL();
+  if(uart_obj_tbl[obj_id].rx_buffer)
+  {
+    vStreamBufferDelete(uart_obj_tbl[obj_id].rx_buffer);
+    uart_obj_tbl[obj_id].rx_buffer_size = size;
+    uart_obj_tbl[obj_id].rx_buffer = xStreamBufferCreate( uart_obj_tbl[obj_id].rx_buffer_size, uart_obj_tbl[obj_id].rx_buffer_size/2 );
+  }
+  taskEXIT_CRITICAL();
+  
+  if( uart_obj_tbl[obj_id].rx_buffer == NULL )
+    return -1;
+  
   return 0;
 }
 
@@ -314,17 +350,21 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
   else if(huart->Instance == USART2)
     uart_obj_rxcplt_isr(UART2_OBJ);
 #endif
-#ifdef UART2_OBJ_EN
+#ifdef UART3_OBJ_EN
   else if(huart->Instance == USART3)
     uart_obj_rxcplt_isr(UART3_OBJ);
 #endif
-#ifdef UART5_OBJ_EN
+#ifdef UART4_OBJ_EN
   else if(huart->Instance == UART4)
     uart_obj_rxcplt_isr(UART4_OBJ);
 #endif
 #ifdef UART5_OBJ_EN
   else if(huart->Instance == UART5)
     uart_obj_rxcplt_isr(UART5_OBJ);
+#endif
+#ifdef UART6_OBJ_EN
+  else if(huart->Instance == USART6)
+    uart_obj_rxcplt_isr(UART6_OBJ);
 #endif
 }
 
@@ -354,6 +394,10 @@ void Usr_UART_RxIdleCallback(UART_HandleTypeDef *huart)
     else if(huart->Instance == UART5)
       uart_obj_rxidle_isr(UART5_OBJ);
 #endif
+#ifdef UART6_OBJ_EN
+    else if(huart->Instance == USART6)
+      uart_obj_rxidle_isr(UART6_OBJ);
+#endif
   }
 }
 
@@ -378,5 +422,9 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 #ifdef UART5_OBJ_EN
     else if(huart->Instance == UART5)
       uart_obj_txcplt_isr(UART5_OBJ);
+#endif
+#ifdef UART6_OBJ_EN
+    else if(huart->Instance == USART6)
+      uart_obj_txcplt_isr(UART6_OBJ);
 #endif
 }
