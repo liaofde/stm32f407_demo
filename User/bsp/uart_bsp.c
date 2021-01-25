@@ -182,9 +182,9 @@ int uart_obj_ioctl_alloc_rx_buffer(uart_obj_id_t obj_id, uint16_t size)
   if(uart_obj_tbl[obj_id].rx_buffer)
   {
     vStreamBufferDelete(uart_obj_tbl[obj_id].rx_buffer);
-    uart_obj_tbl[obj_id].rx_buffer_size = size;
-    uart_obj_tbl[obj_id].rx_buffer = xStreamBufferCreate( uart_obj_tbl[obj_id].rx_buffer_size, uart_obj_tbl[obj_id].rx_buffer_size/2 );
   }
+  uart_obj_tbl[obj_id].rx_buffer_size = size;
+  uart_obj_tbl[obj_id].rx_buffer = xStreamBufferCreate( uart_obj_tbl[obj_id].rx_buffer_size, uart_obj_tbl[obj_id].rx_buffer_size/2 );
   taskEXIT_CRITICAL();
   
   if( uart_obj_tbl[obj_id].rx_buffer == NULL )
