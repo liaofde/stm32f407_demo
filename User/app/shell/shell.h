@@ -2,7 +2,7 @@
 
 #include "usart.h"
 #include "shell_cmd.h"
-#include "uart_dev.h"
+#include "uart_bsp.h"
 
 #define FINSH_HISTORY_LINES 5
 #define FINSH_USING_SYMTAB
