@@ -29,7 +29,7 @@
 #include <cmsis_os.h>
 
 /* ----------------------- Variables ----------------------------------------*/
-#define xUSE_OS_MESSAGE
+#define USE_OS_MESSAGE
 
 #ifdef USE_OS_MESSAGE
 osMessageQId mb_slave_message  =  NULL;
