@@ -13,11 +13,11 @@ uint16_t restore_opt(void *data, char *help_info);
 
 const shell_cmd_t shell_cmd[]=
 {
-  {"?",         help_opt,       "? \r\n\t\t eg:?"},
+  {"?",         help_opt,       "?"},
   {"motor",     motor_opt,      "motor -s horiz -d (0~360.0\\left\\right) -v (1~100)\r\n\t\t eg:motor -s horiz -d 45 -v 50"},
-  {"system",    system_opt,     "system \r\n\t\t eg:system"},
-  {"reboot",    reboot_opt,     "reboot \r\n\t\t eg:reboot"},
-  {"restore",   restore_opt,    "restore \r\n\t\t eg:restore"},
+  {"system",    system_opt,     "system"},
+  {"reboot",    reboot_opt,     "reboot"},
+  {"restore",   restore_opt,    "restore"},
   {NULL,}
 };
 
