@@ -47,8 +47,8 @@ int uart_obj_open(uart_obj_id_t obj_id, uint32_t baudrate, uint32_t parity, uint
   
   if(uart_obj_tbl[obj_id].rx_buffer == NULL)
   {
-    if(uart_obj_tbl[obj_id].rx_buffer_size<256)
-      uart_obj_tbl[obj_id].rx_buffer_size = 256;
+    if(uart_obj_tbl[obj_id].rx_buffer_size<64)
+      uart_obj_tbl[obj_id].rx_buffer_size = 64;
     else if(uart_obj_tbl[obj_id].rx_buffer_size > 1024)
       uart_obj_tbl[obj_id].rx_buffer_size = 1024;
     uart_obj_tbl[obj_id].rx_buffer = xStreamBufferCreate( uart_obj_tbl[obj_id].rx_buffer_size, uart_obj_tbl[obj_id].rx_buffer_size/2 );
