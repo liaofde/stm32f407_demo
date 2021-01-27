@@ -7,17 +7,12 @@
 #include "stdbool.h"
 #include "usrapi.h"
 
-
 osThreadId ShellTaskHandle;
 
 void shell_uart_obj_init(void)
 {
   uart_obj_open(UART1_OBJ, 115200, UART_PARITY_NONE, UART_WORDLENGTH_8B, UART_STOPBITS_1);
 }
-
-uint8_t buf[64];
-uint8_t len;
-finsh_shell_t finsh_shell;
 
 static const uint8_t key_up[3]    ={0x1b, 0x5b ,0x41};//up
 static const uint8_t key_down[3]  ={0x1b, 0x5b ,0x42};//down
@@ -28,56 +23,56 @@ static const uint8_t key_left[3]  ={0x1b, 0x5b ,0x44};//left
 //static const uint8_t key_f3[3]    ={0x1b, 0x4f ,0x52};//f3
 //static const uint8_t key_f4[3]    ={0x1b, 0x4f ,0x53};//f4
 
-#define FINSH_PROMPT ">"
+#define SHELL_PROMPT ">"
 
-static bool shell_handle_history(struct finsh_shell *shell)
+static bool shell_handle_history(struct shell *shell)
 {
 #if defined(_WIN32)
   int i;
-  printf("\r");
+  shell_printf("\r");
   
   for (i = 0; i <= 60; i++)
     putchar(' ');
-  printf("\r");
+  shell_printf("\r");
   
 #else
-  printf("\033[2K\r");
+  shell_printf("\033[2K\r");
 #endif
-  printf("%s%s", FINSH_PROMPT, shell->line);
+  shell_printf("%s%s", SHELL_PROMPT, shell->line);
   return false;
 }
 
-static void shell_push_history(struct finsh_shell *shell)
+static void shell_push_history(struct shell *shell)
 {
   if (shell->line_position != 0)
   {
     /* push history */
-    if (shell->history_count >= FINSH_HISTORY_LINES)
+    if (shell->history_count >= SHELL_HISTORY_LINES)
     {
       /* if current cmd is same as last cmd, don't push */
-      if (memcmp(&shell->cmd_history[FINSH_HISTORY_LINES - 1], shell->line, FINSH_CMD_SIZE))
+      if (memcmp(&shell->cmd_history[SHELL_HISTORY_LINES - 1], shell->line, SHELL_CMD_SIZE))
       {
         /* move history */
         int index;
-        for (index = 0; index < FINSH_HISTORY_LINES - 1; index ++)
+        for (index = 0; index < SHELL_HISTORY_LINES - 1; index ++)
         {
           memcpy(&shell->cmd_history[index][0],
-                 &shell->cmd_history[index + 1][0], FINSH_CMD_SIZE);
+                 &shell->cmd_history[index + 1][0], SHELL_CMD_SIZE);
         }
-        memset(&shell->cmd_history[index][0], 0, FINSH_CMD_SIZE);
+        memset(&shell->cmd_history[index][0], 0, SHELL_CMD_SIZE);
         memcpy(&shell->cmd_history[index][0], shell->line, shell->line_position);
         
         /* it's the maximum history */
-        shell->history_count = FINSH_HISTORY_LINES;
+        shell->history_count = SHELL_HISTORY_LINES;
       }
     }
     else
     {
       /* if current cmd is same as last cmd, don't push */
-      if (shell->history_count == 0 || memcmp(&shell->cmd_history[shell->history_count - 1], shell->line, FINSH_CMD_SIZE))
+      if (shell->history_count == 0 || memcmp(&shell->cmd_history[shell->history_count - 1], shell->line, SHELL_CMD_SIZE))
       {
         shell->current_history = shell->history_count;
-        memset(&shell->cmd_history[shell->history_count][0], 0, FINSH_CMD_SIZE);
+        memset(&shell->cmd_history[shell->history_count][0], 0, SHELL_CMD_SIZE);
         memcpy(&shell->cmd_history[shell->history_count][0], shell->line, shell->line_position);
         
         /* increase count and set current history position */
@@ -88,16 +83,65 @@ static void shell_push_history(struct finsh_shell *shell)
   shell->current_history = shell->history_count;
 }
 
+extern log_item_t log_item[];
+static void shell_auto_complete(struct shell *shell)
+{
+  log_item_t *pt = log_item;
+  log_item_t *item=NULL;
+  
+  if (shell->line_position != 0)
+  {
+    uint16_t i=0;
+    while(pt->log_cmd)
+    {
+      if(strstr(pt->log_cmd, shell->line) == pt->log_cmd)
+      {
+        i++;
+        if(i==1)
+          item = pt;
+        else 
+          break;
+      }
+      pt++;
+    }
+    if(i==1)
+    {
+      uint8_t len = strlen(item->log_cmd);
+      shell_printf("%s", &item->log_cmd[shell->line_curpos]);
+      strcpy(shell->line, item->log_cmd);
+      shell->line_position = shell->line_curpos = len;
+    }
+    else if(i>1)
+    {
+      shell_printf("\r\n");
+      pt = log_item;
+      while(pt->log_cmd)
+      {
+        if(strstr(pt->log_cmd, shell->line) == pt->log_cmd)
+        {
+          shell_printf("%s\t", pt->log_cmd);
+        }
+        pt++;
+      }
+      shell_printf("\r\n"SHELL_PROMPT);
+      shell_printf("%s",shell->line);
+    }
+  }
+}
+
 void ShellTask(void const * argument)
 {
   /* USER CODE BEGIN ShellTask */
+  uint8_t buf[64];
+  uint8_t len;
+  shell_t shell_obj;
   shell_uart_obj_init();
-  finsh_shell_t *shell = &finsh_shell;
+  shell_t *shell = &shell_obj;
   uint8_t offset;
   uint8_t ch;
   
   shell->echo_mode = 1;
-  printf("\r\n"FINSH_PROMPT);
+  shell_printf("\r\n"SHELL_PROMPT);
 
   while(1)
   {
@@ -121,7 +165,7 @@ void ShellTask(void const * argument)
           
           /* copy the history command */
           memcpy(shell->line, &shell->cmd_history[shell->current_history][0],
-                 FINSH_CMD_SIZE);
+                 SHELL_CMD_SIZE);
           shell->line_curpos = shell->line_position = strlen(shell->line);
           shell_handle_history(shell);
         }
@@ -142,7 +186,7 @@ void ShellTask(void const * argument)
           }
           
           memcpy(shell->line, &shell->cmd_history[shell->current_history][0],
-                 FINSH_CMD_SIZE);
+                 SHELL_CMD_SIZE);
           shell->line_curpos = shell->line_position = strlen(shell->line);
           shell_handle_history(shell);
         }
@@ -150,7 +194,7 @@ void ShellTask(void const * argument)
         {
           if (shell->line_curpos < shell->line_position)
           {
-            printf("%c", shell->line[shell->line_curpos]);
+            shell_printf("%c", shell->line[shell->line_curpos]);
             shell->line_curpos ++;
           }
         }
@@ -158,7 +202,7 @@ void ShellTask(void const * argument)
         {
           if(shell->line_curpos)
           {
-            printf("\b");
+            shell_printf("\b");
             shell->line_curpos --;
           }
         }
@@ -185,15 +229,15 @@ void ShellTask(void const * argument)
                   shell->line_position - shell->line_curpos);
           shell->line[shell->line_position] = 0;
           
-          printf("\b%s  \b", &shell->line[shell->line_curpos]);
+          shell_printf("\b%s  \b", &shell->line[shell->line_curpos]);
           
           /* move the cursor to the origin position */
           for (i = shell->line_curpos; i <= shell->line_position; i++)
-            printf("\b");
+            shell_printf("\b");
         }
         else
         {
-          printf("\b \b");
+          shell_printf("\b \b");
           shell->line[shell->line_position] = 0;
         }
         offset += 1;
@@ -207,13 +251,13 @@ void ShellTask(void const * argument)
         if(len > 0)
         {
           char *msg = NULL;
-          msg = (char *)pvPortMalloc(1024);
+          msg = (char *)pvPortMalloc(512);
           if(msg != NULL)
           {
             memcpy(msg, shell->line, len+1);
             len = shell_cmd_handler(msg, len);
             if(len)
-              printf("\r\n%s\r\n", msg);
+              shell_printf("\r\n%s\r\n", msg);
             vPortFree(msg);
           }
         }
@@ -221,17 +265,30 @@ void ShellTask(void const * argument)
         memset(shell->line, 0, sizeof(shell->line));
         shell->line_curpos = shell->line_position = 0;
         
-        printf("\r\n"FINSH_PROMPT);
+        shell_printf("\r\n"SHELL_PROMPT);
         if(buf[offset++] == '\n')
           offset ++;
         offset ++;
         continue;
       }
+      else if(buf[offset] == 0x09)//table
+      {
+        offset++;
+        shell_auto_complete(shell);
+      }
+      else if(buf[offset] == 0x03)//ctrl+c
+      {
+        offset++;
+        memset(shell->line, 0, shell->line_curpos);
+        shell->line_curpos=0;
+        shell->line_position = 0;
+        shell_printf("^C\r\n"SHELL_PROMPT);
+      }
       else
       {
         ch = buf[offset];
         /* it's a large line, discard it */
-        if (shell->line_position >= FINSH_CMD_SIZE)
+        if (shell->line_position >= SHELL_CMD_SIZE)
           shell->line_position = 0;
         
         /* normal character */
@@ -244,23 +301,23 @@ void ShellTask(void const * argument)
                   shell->line_position - shell->line_curpos);
           shell->line[shell->line_curpos] = ch;
           if (shell->echo_mode)
-            printf("%s", &shell->line[shell->line_curpos]);
+            shell_printf("%s", &shell->line[shell->line_curpos]);
           
           /* move the cursor to new position */
           for (i = shell->line_curpos; i < shell->line_position; i++)
-            printf("\b");
+            shell_printf("\b");
         }
         else
         {
           shell->line[shell->line_position] = ch;
           if (shell->echo_mode)
-            printf("%c", ch);
+            shell_printf("%c", ch);
         }
         
         ch = 0;
         shell->line_position ++;
         shell->line_curpos++;
-        if (shell->line_position >= FINSH_CMD_SIZE)
+        if (shell->line_position >= SHELL_CMD_SIZE)
         {
           /* clear command line */
           shell->line_position = 0;
@@ -276,7 +333,7 @@ void ShellTask(void const * argument)
 
 int shell_thread_entry(void)
 {
-  osThreadDef(shell, ShellTask, osPriorityNormal, 0, 1024);
+  osThreadDef(shell, ShellTask, osPriorityNormal, 0, 512);
   ShellTaskHandle = osThreadCreate(osThread(shell), NULL);
   
   return 0;

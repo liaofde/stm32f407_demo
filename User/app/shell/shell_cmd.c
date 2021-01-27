@@ -1,6 +1,3 @@
-#include "stdio.h"
-#include "string.h"
-#include "stdlib.h"
 #include "cmsis_os.h"
 #include "freertos.h"
 #include "shell_cmd.h"
@@ -8,24 +5,19 @@
 
 #define CMD_EXECUTE_ECHO "Command is executing"
 
-typedef uint16_t (*log_act_t)(void*, char *help_info);
-typedef struct {
-	char *log_cmd;
-	log_act_t act;
-        char *help_info;
-}log_item_t;
-
 uint16_t motor_opt(void *data, char *help_info);
 uint16_t help_opt(void *data, char *help_info);
 uint16_t system_opt(void *data, char *help_info);
 uint16_t reboot_opt(void *data, char *help_info);
+uint16_t restore_opt(void *data, char *help_info);
 
 const log_item_t log_item[]=
 {
+  {"?",         help_opt,       "? \r\n\t\t eg:?"},
   {"motor",     motor_opt,      "motor -s horiz -d (0~360.0\\left\\right) -v (1~100)\r\n\t\t eg:motor -s horiz -d 45 -v 50"},
   {"system",    system_opt,     "system \r\n\t\t eg:system"},
   {"reboot",    reboot_opt,     "reboot \r\n\t\t eg:reboot"},
-  {"?",         help_opt,       "? \r\n\t\t eg:?"},
+  {"restore",   restore_opt,    "restore \r\n\t\t eg:restore"},
   {NULL,}
 };
 
@@ -128,15 +120,26 @@ uint16_t reboot_opt(void *data, char *help_info)
   return ret;
 }
 
+uint16_t restore_opt(void *data, char *help_info)
+{
+  uint16_t ret;
+  
+  //reboot_flag = 1;
+  ret = sprintf(data, "restore ok\r\n");
+  return ret;
+}
+
 uint16_t help_opt(void *data, char *help_info)
 {
   log_item_t *item = (log_item_t  *)log_item;
   uint16_t ret = 0;
   
-  ret += sprintf((char *)data+ret, "cmd\t\tformat\r\n------------------------\r\n");
+  ret +=  sprintf((char *)data+ret, "firmware version %s_r%s bulid %s %s run ticks:%d\r\nFreeHeapSize:%d\r\n",FW_VERSION, "10", __DATE__, __TIME__, HAL_GetTick(), xPortGetFreeHeapSize());
+  item ++;
+  ret += sprintf((char *)data+ret, "cmd\r\n----\r\n");
   while(item->log_cmd != NULL)
   {
-    ret += sprintf((char *)data+ret, "%s\t\t%s\r\n", item->log_cmd, item->help_info);
+    ret += sprintf((char *)data+ret, "%s\r\n", item->log_cmd);
     item ++;
   }
   
@@ -149,6 +152,7 @@ uint16_t shell_cmd_handler(char *data, uint16_t len)
   int res = -1;
   int str_len;
   uint16_t ret = 0;
+  uint8_t help=0;
   
   if(len>0)
   {
@@ -158,7 +162,10 @@ uint16_t shell_cmd_handler(char *data, uint16_t len)
       if(memcmp(data, item->log_cmd, str_len) == 0 && (data[str_len] == ' ' || data[str_len] == '\0' || data[str_len] == '\r' ||data[str_len] == '\n'))
       {
         res = 0;
-        if(item->act)
+        int i=sscanf(data, "%*s %c", &help);
+        if(i==1 && help == '?')
+          ret = sprintf(data+ret, "%s\r\n", item->help_info!=NULL?item->help_info:"");
+        else if(item->act)
           ret = item->act(data, item->help_info);
         break;
       }

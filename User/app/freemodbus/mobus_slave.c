@@ -18,7 +18,7 @@
 
 #define SLAVE_ADDR      0x01
 #define PORT_NUM        UART2_OBJ
-#define PORT_BAUDRATE   115200
+#define PORT_BAUDRATE   19200
 #define PORT_PARITY     MB_PAR_EVEN
 
 #define MB_POLL_THREAD_PRIORITY  10
