@@ -11,14 +11,10 @@
 
 typedef struct shell
 {
-    uint8_t echo_mode:1;
-    uint8_t prompt_mode: 1;
-
-    uint16_t current_history;
-    uint16_t history_count;
-
+    uint8_t echo_mode;
+    uint8_t current_history;
+    uint8_t history_count;
     char cmd_history[SHELL_HISTORY_LINES][SHELL_CMD_SIZE];
-
     char line[SHELL_CMD_SIZE];
     uint16_t line_position;
     uint16_t line_curpos;

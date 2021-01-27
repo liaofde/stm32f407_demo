@@ -11,7 +11,7 @@ uint16_t system_opt(void *data, char *help_info);
 uint16_t reboot_opt(void *data, char *help_info);
 uint16_t restore_opt(void *data, char *help_info);
 
-const log_item_t log_item[]=
+const shell_cmd_t shell_cmd[]=
 {
   {"?",         help_opt,       "? \r\n\t\t eg:?"},
   {"motor",     motor_opt,      "motor -s horiz -d (0~360.0\\left\\right) -v (1~100)\r\n\t\t eg:motor -s horiz -d 45 -v 50"},
@@ -131,7 +131,7 @@ uint16_t restore_opt(void *data, char *help_info)
 
 uint16_t help_opt(void *data, char *help_info)
 {
-  log_item_t *item = (log_item_t  *)log_item;
+  shell_cmd_t *item = (shell_cmd_t  *)shell_cmd;
   uint16_t ret = 0;
   
   ret +=  sprintf((char *)data+ret, "firmware version %s_r%s bulid %s %s run ticks:%d\r\nFreeHeapSize:%d\r\n",FW_VERSION, "10", __DATE__, __TIME__, HAL_GetTick(), xPortGetFreeHeapSize());
@@ -148,7 +148,7 @@ uint16_t help_opt(void *data, char *help_info)
 
 uint16_t shell_cmd_handler(char *data, uint16_t len)
 {
-  log_item_t *item = (log_item_t *)log_item;
+  shell_cmd_t *item = (shell_cmd_t *)shell_cmd;
   int res = -1;
   int str_len;
   uint16_t ret = 0;

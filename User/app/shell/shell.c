@@ -7,23 +7,16 @@
 #include "stdbool.h"
 #include "usrapi.h"
 
+#define SHELL_PROMPT "> "
+
 osThreadId ShellTaskHandle;
 
-void shell_uart_obj_init(void)
+extern shell_cmd_t shell_cmd[];
+
+static void shell_uart_obj_init(void)
 {
   uart_obj_open(UART1_OBJ, 115200, UART_PARITY_NONE, UART_WORDLENGTH_8B, UART_STOPBITS_1);
 }
-
-static const uint8_t key_up[3]    ={0x1b, 0x5b ,0x41};//up
-static const uint8_t key_down[3]  ={0x1b, 0x5b ,0x42};//down
-static const uint8_t key_right[3] ={0x1b, 0x5b ,0x43};//right
-static const uint8_t key_left[3]  ={0x1b, 0x5b ,0x44};//left
-//static const uint8_t key_f1[3]    ={0x1b, 0x4f ,0x50};//f1
-//static const uint8_t key_f2[3]    ={0x1b, 0x4f ,0x51};//f2
-//static const uint8_t key_f3[3]    ={0x1b, 0x4f ,0x52};//f3
-//static const uint8_t key_f4[3]    ={0x1b, 0x4f ,0x53};//f4
-
-#define SHELL_PROMPT ">"
 
 static bool shell_handle_history(struct shell *shell)
 {
@@ -83,11 +76,10 @@ static void shell_push_history(struct shell *shell)
   shell->current_history = shell->history_count;
 }
 
-extern log_item_t log_item[];
 static void shell_auto_complete(struct shell *shell)
 {
-  log_item_t *pt = log_item;
-  log_item_t *item=NULL;
+  shell_cmd_t *pt = shell_cmd;
+  shell_cmd_t *item=NULL;
   
   if (shell->line_position != 0)
   {
@@ -114,7 +106,7 @@ static void shell_auto_complete(struct shell *shell)
     else if(i>1)
     {
       shell_printf("\r\n");
-      pt = log_item;
+      pt = shell_cmd;
       while(pt->log_cmd)
       {
         if(strstr(pt->log_cmd, shell->line) == pt->log_cmd)
@@ -151,7 +143,7 @@ void ShellTask(void const * argument)
     {
       if(buf[offset] == 0x1b)
       {
-        if(memcmp(key_up, &buf[offset], 3) == 0)
+        if(memcmp("\x1b\x5b\x41", &buf[offset], 3) == 0)//up
         {
           /* prev history */
           if (shell->current_history > 0)
@@ -169,7 +161,7 @@ void ShellTask(void const * argument)
           shell->line_curpos = shell->line_position = strlen(shell->line);
           shell_handle_history(shell);
         }
-        else if(memcmp(key_down, &buf[offset], 3) == 0)
+        else if(memcmp("\x1b\x5b\x42", &buf[offset], 3) == 0)//down
         {
           if (shell->current_history < shell->history_count - 1)
             shell->current_history ++;
@@ -190,7 +182,7 @@ void ShellTask(void const * argument)
           shell->line_curpos = shell->line_position = strlen(shell->line);
           shell_handle_history(shell);
         }
-        else if(memcmp(key_right, &buf[offset], 3) == 0)
+        else if(memcmp("\x1b\x5b\x43", &buf[offset], 3) == 0)//right
         {
           if (shell->line_curpos < shell->line_position)
           {
@@ -198,7 +190,7 @@ void ShellTask(void const * argument)
             shell->line_curpos ++;
           }
         }
-        else if(memcmp(key_left, &buf[offset], 3) == 0)
+        else if(memcmp("\x1b\x5b\x44", &buf[offset], 3) == 0)//left
         {
           if(shell->line_curpos)
           {
@@ -209,7 +201,7 @@ void ShellTask(void const * argument)
         offset += 3;
         continue;
       }
-      else if(buf[offset] == 0x08 || buf[offset] == 0x7f)
+      else if(buf[offset] == 0x08 || buf[offset] == 0x7f)//delete
       {
         /* note that shell->line_curpos >= 0 */
         if (shell->line_curpos == 0)
@@ -283,6 +275,21 @@ void ShellTask(void const * argument)
         shell->line_curpos=0;
         shell->line_position = 0;
         shell_printf("^C\r\n"SHELL_PROMPT);
+      }
+      else if(buf[offset] == 0x0c)//ctrl+l
+      {
+        offset++;
+        memset(shell->line, 0, shell->line_curpos);
+        shell->line_curpos=0;
+        shell->line_position = 0;
+        shell_printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
+                     "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
+                     "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
+                     "\r\n\x0c\x0c\r\n"SHELL_PROMPT);
+      }
+      else if(buf[offset] < 0x20 || buf[offset] >= 0x80)
+      {
+        offset++;
       }
       else
       {
