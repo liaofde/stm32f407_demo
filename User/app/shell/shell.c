@@ -125,7 +125,7 @@ static void shell_auto_complete(struct shell *shell)
 void ShellTask(void const * argument)
 {
   /* USER CODE BEGIN ShellTask */
-  uint8_t buf[64];
+  uint8_t buf[SHELL_CMD_SIZE];
   uint8_t len;
   shell_t *shell = &shell_obj;
   uint8_t offset;
