@@ -3,7 +3,7 @@
 #include "ptz_horiz_motion_control.h"
 #include "../common/can_common_api.h"
 #include "ptz_horiz_objdict.h"
-#include "usrapi.h"
+#include "utils_userapi.h"
 
 
 #define EVENT_WAIT_DELAY      1000

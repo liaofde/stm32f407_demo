@@ -5,7 +5,7 @@
 #include "cmsis_os.h"
 #include "stdio.h"
 #include "stdbool.h"
-#include "usrapi.h"
+#include "utils_userapi.h"
 
 #define SHELL_PROMPT "> "
 
@@ -282,10 +282,7 @@ void ShellTask(void const * argument)
         memset(shell->line, 0, shell->line_curpos);
         shell->line_curpos=0;
         shell->line_position = 0;
-        shell_printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
-                     "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
-                     "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
-                     "\r\n\x0c\x0c\r\n"SHELL_PROMPT);
+        shell_printf("\033[0;0H\033[2J"SHELL_PROMPT);
       }
       else if(buf[offset] < 0x20 || buf[offset] >= 0x80)
       {

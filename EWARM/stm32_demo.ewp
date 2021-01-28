@@ -1395,10 +1395,10 @@
             <group>
                 <name>common</name>
                 <file>
-                    <name>$PROJ_DIR$\..\User\common\usrapi.h</name>
+                    <name>$PROJ_DIR$\..\User\common\utils_userapi.h</name>
                 </file>
                 <file>
-                    <name>$PROJ_DIR$\..\User\common\usrdef.h</name>
+                    <name>$PROJ_DIR$\..\User\common\utils_userdef.h</name>
                 </file>
             </group>
             <group>

@@ -2,7 +2,7 @@
 #include "cmsis_os.h"
 #include "semphr.h"
 #include "can_common_api.h"
-#include "usrdef.h"
+#include "utils_userdef.h"
 
 static osMutexId    can_mutex;
 																 
