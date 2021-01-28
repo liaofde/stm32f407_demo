@@ -13,11 +13,13 @@ uint16_t restore_opt(void *data, char *help_info);
 
 const shell_cmd_t shell_cmd[]=
 {
+/*************不可更改区域 开始 ********************/
   {"?",         help_opt,       "?"},
-  {"motor",     motor_opt,      "motor -s horiz -d (0~360.0\\left\\right) -v (1~100)\r\n\t\t eg:motor -s horiz -d 45 -v 50"},
   {"system",    system_opt,     "system"},
   {"reboot",    reboot_opt,     "reboot"},
+/*************不可更改区域 结束 ********************/
   {"restore",   restore_opt,    "restore"},
+  {"motor",     motor_opt,      "motor -s horiz -d (0~360.0\\left\\right) -v (1~100)\r\n\t\t eg:motor -s horiz -d 45 -v 50"},
   {NULL,}
 };
 
@@ -26,8 +28,12 @@ uint16_t system_opt(void *data, char *help_info)
 {
   uint16_t ret = 0;
   
-  ret =  sprintf((char *)data, "firmware version %s_r%s bulid %s %s run ticks:%d\r\nFreeHeapSize:%d\r\n",FW_VERSION, "10", __DATE__, __TIME__, HAL_GetTick(), xPortGetFreeHeapSize());
-
+  ret =  sprintf((char *)data, "\r\nfirmware version %s_r%s bulid %s %s\r\nrun ticks:%d\r\nFreeHeapSize:%d\r\n",FW_VERSION, "10", __DATE__, __TIME__, HAL_GetTick(), xPortGetFreeHeapSize());
+  ret +=  sprintf((char *)data+ret,"=================================================\r\n");
+  ret +=  sprintf((char *)data+ret,"task_name\tstate\tprior\trtack\tId\r\n");
+  osThreadList((uint8_t *)data+ret);
+  ret = strlen(data);
+  
   return ret;
 }
 
@@ -134,7 +140,7 @@ uint16_t help_opt(void *data, char *help_info)
   shell_cmd_t *item = (shell_cmd_t  *)shell_cmd;
   uint16_t ret = 0;
   
-  ret +=  sprintf((char *)data+ret, "firmware version %s_r%s bulid %s %s run ticks:%d\r\nFreeHeapSize:%d\r\n",FW_VERSION, "10", __DATE__, __TIME__, HAL_GetTick(), xPortGetFreeHeapSize());
+  ret +=  sprintf((char *)data+ret, "firmware version %s_r%s bulid %s %s\r\nrun ticks:%d\r\nFreeHeapSize:%d\r\n",FW_VERSION, "10", __DATE__, __TIME__, HAL_GetTick(), xPortGetFreeHeapSize());
   item ++;
   ret += sprintf((char *)data+ret, "cmd\r\n----\r\n");
   while(item->log_cmd != NULL)

@@ -10,6 +10,7 @@
 #define SHELL_PROMPT "> "
 
 osThreadId ShellTaskHandle;
+shell_t shell_obj;
 
 extern shell_cmd_t shell_cmd[];
 
@@ -126,14 +127,13 @@ void ShellTask(void const * argument)
   /* USER CODE BEGIN ShellTask */
   uint8_t buf[64];
   uint8_t len;
-  shell_t shell_obj;
-  shell_uart_obj_init();
   shell_t *shell = &shell_obj;
   uint8_t offset;
   uint8_t ch;
   
   shell->echo_mode = 1;
-  shell_printf("\r\n"SHELL_PROMPT);
+  shell_uart_obj_init();
+  shell_printf("\033[0;0H\033[2J"SHELL_PROMPT);
 
   while(1)
   {
@@ -243,7 +243,7 @@ void ShellTask(void const * argument)
         if(len > 0)
         {
           char *msg = NULL;
-          msg = (char *)pvPortMalloc(512);
+          msg = (char *)pvPortMalloc(1024);
           if(msg != NULL)
           {
             memcpy(msg, shell->line, len+1);
