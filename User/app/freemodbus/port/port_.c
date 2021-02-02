@@ -28,11 +28,11 @@
 /* ----------------------- Start implementation -----------------------------*/
 void EnterCriticalSection(void)
 {
-    //rt_enter_critical();
+    taskENTER_CRITICAL(  );
 }
 
 void ExitCriticalSection(void)
 {
-    //rt_exit_critical();
+    taskEXIT_CRITICAL();
 }
 

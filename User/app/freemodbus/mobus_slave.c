@@ -42,8 +42,8 @@ static void mb_slave_poll(void const *parameter)
         usSRegHoldBuf[2]=0x52b8;
         usSRegHoldBuf[3]=0x48c1;
         eMBPoll();
-        void mb_waitidle(void);
-        mb_waitidle();
+        void mb_seriral_hdl(void);
+        mb_seriral_hdl();
     }
 }
 

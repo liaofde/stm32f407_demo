@@ -29,6 +29,14 @@
 volatile uint8_t rx_idle_cnt=0;
 volatile uint8_t rx_enable=1;
 volatile uint8_t tx_enable=0;
+volatile UCHAR  RTUBuf[256];
+
+#define xSPECIFIC_ISR_ENABLE     
+
+#ifndef SPECIFIC_ISR_ENABLE 
+uint16_t rxlen=0;
+#endif
+uint16_t txlen=0;
 
 /* ----------------------- static functions ---------------------------------*/
 static void prvvUARTTxReadyISR(void);
@@ -56,7 +64,9 @@ void mb_uart_obj_init( ULONG ulBaudRate, UCHAR ucDataBits,eMBParity eParity)
   Parity = (eParity==MB_PAR_NONE)?UART_PARITY_NONE:(eParity==MB_PAR_ODD)?UART_PARITY_ODD:UART_PARITY_EVEN;
   uart_obj_open(UART2_OBJ, ulBaudRate, Parity , WordLength,  UART_STOPBITS_1);
   uart_obj_ioctl_rs485_register(UART2_OBJ, rs485_rxen, rs485_txen);
+#ifdef SPECIFIC_ISR_ENABLE
   uart_obj_ioctl_specific_rtx_isr_register(UART2_OBJ, prvvUARTRxISR, prvvUARTTxReadyISR);
+#endif
 }
 
 /* ----------------------- Start implementation -----------------------------*/
@@ -76,14 +86,17 @@ void vMBPortSerialEnable(BOOL xRxEnable, BOOL xTxEnable)
 
 BOOL xMBPortSerialPutByte(CHAR ucByte)
 {
-    uart_obj_write(UART2_OBJ, (uint8_t *)&ucByte,1);
+    RTUBuf[txlen++]=ucByte;
     return TRUE;
 }
 
 BOOL xMBPortSerialGetByte(CHAR * pucByte)
-{
+{  
+#ifdef SPECIFIC_ISR_ENABLE
     uart_obj_read(UART2_OBJ, (uint8_t *)pucByte, 1, 0);
-    //*pucByte = uart_obj_list[UART2_OBJ].rxbyte;
+#else
+    *pucByte = RTUBuf[rxlen++];
+#endif
     return TRUE;
 }
 
@@ -113,9 +126,11 @@ void prvvUARTRxISR(void)
       pxMBFrameCBByteReceived();
 }
 
-void mb_waitidle(void)
+void mb_seriral_hdl(void)
 {
     extern uint8_t mb_time_enable;
+    
+#ifdef SPECIFIC_ISR_ENABLE
     osDelay(5);
     if(mb_time_enable && ++rx_idle_cnt>=3)
     {
@@ -123,9 +138,28 @@ void mb_waitidle(void)
       extern void prvvTIMERExpiredISR(void);
       prvvTIMERExpiredISR();
     }
-    if(tx_enable)
+#else
+    uint16_t len=0;
+    len=uart_obj_read(UART2_OBJ, (uint8_t *)RTUBuf, 256, 5);
+    if(len>0 && rx_enable)
     {
-      tx_enable = 0;
+      int i=0;
+      for(i=0,rxlen = 0;i<len;i++)
+        prvvUARTRxISR();
+    }
+    if(mb_time_enable)
+    {
+      extern void prvvTIMERExpiredISR(void);
+      prvvTIMERExpiredISR();
+    }
+#endif
+    txlen=0;
+    while(tx_enable)
+    {
       prvvUARTTxReadyISR();
+    }
+    if(txlen)
+    {
+      uart_obj_write(UART2_OBJ, (uint8_t *)RTUBuf,txlen);
     }
 }

@@ -195,20 +195,24 @@ int uart_obj_ioctl_alloc_rx_buffer(uart_obj_id_t obj_id, uint16_t size)
 
 int uart_obj_read(uart_obj_id_t obj_id, uint8_t *buf, int size, uint32_t timeout)
 {
-  int ret = -1;
+  int ret = 0;
   SemaphoreHandle_t xSemaphore = uart_obj_tbl[obj_id].rx_idle_semaph;
   
   if( xSemaphore != NULL )
   {
     if(__get_IPSR() != 0)
     {
-      xSemaphoreTakeFromISR( xSemaphore, NULL);
-      xStreamBufferReceiveFromISR( uart_obj_tbl[obj_id].rx_buffer, ( void * ) buf, size, 0 );
+      //xSemaphoreTakeFromISR( xSemaphore, NULL);
+      ret = xStreamBufferReceiveFromISR( uart_obj_tbl[obj_id].rx_buffer, ( void * ) buf, size, 0 );
     }
     else
     {
-      xSemaphoreTake( xSemaphore, ( TickType_t ) timeout );
-      ret = xStreamBufferReceive( uart_obj_tbl[obj_id].rx_buffer, ( void * ) buf, size, 0 );
+      if(xSemaphoreTake( xSemaphore, ( TickType_t ) timeout ) == pdTRUE)
+      {  
+        ret = xStreamBufferReceive( uart_obj_tbl[obj_id].rx_buffer, ( void * ) buf, size, 0 );
+        if(xStreamBufferBytesAvailable( uart_obj_tbl[obj_id].rx_buffer ))
+          xSemaphoreGive( uart_obj_tbl[obj_id].rx_idle_semaph);
+      }
     }
   }
   return ret;
