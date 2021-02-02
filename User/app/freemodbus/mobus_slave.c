@@ -25,7 +25,7 @@
 #define MB_SEND_THREAD_PRIORITY  RT_THREAD_PRIORITY_MAX - 1
 
 #define MB_POLL_CYCLE_MS 200
-
+extern void mb_seriral_hdl(void);
 extern USHORT usSRegHoldBuf[S_REG_HOLDING_NREGS];
 
 osThreadId mb_slave_TaskHandle;
@@ -42,7 +42,6 @@ static void mb_slave_poll(void const *parameter)
         usSRegHoldBuf[2]=0x52b8;
         usSRegHoldBuf[3]=0x48c1;
         eMBPoll();
-        void mb_seriral_hdl(void);
         mb_seriral_hdl();
     }
 }
