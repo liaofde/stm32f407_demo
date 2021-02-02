@@ -51,10 +51,10 @@ typedef struct _uart_obj
   void (*rs485_txen)(void);
   void (*specific_rx_isr)(void);
   void (*specific_tx_isr)(void);
-  SemaphoreHandle_t   rx_idle_semaph;
-  SemaphoreHandle_t   tx_cplt_semaph;
-  uint8_t             tx_busy:1;
-  uint8_t             rx_busy:1;
+  SemaphoreHandle_t   rx_sema;
+  SemaphoreHandle_t   tx_sema;
+  uint8_t             rx_stat:1;
+  uint8_t             tx_stat:1;
   uint8_t             rxbyte;
 }uart_obj_t;
 
@@ -75,7 +75,7 @@ int uart_obj_ioctl_rs485_register(uart_obj_id_t obj_id, void(*rs485_rxen)(void),
 int uart_obj_ioctl_specific_rtx_isr_register(uart_obj_id_t obj_id, void(*specific_rx_isr)(void), void (*specific_tx_isr)(void) );
 int uart_obj_ioctl_get_info(uart_obj_id_t obj_id, uint32_t *baudrate, uint32_t *parity, uint32_t *databits, uint32_t *stopbits);
 int uart_obj_ioctl_alloc_rx_buffer(uart_obj_id_t obj_id, uint16_t size);
-uint8_t uart_obj_write_is_busy(uart_obj_id_t obj_id);
-uint8_t uart_obj_read_is_busy(uart_obj_id_t obj_id);
+int uart_obj_ioctl_is_tx_busy(uart_obj_id_t obj_id);
+int uart_obj_ioctl_is_rx_busy(uart_obj_id_t obj_id);
 
 #endif
