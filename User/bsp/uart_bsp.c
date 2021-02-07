@@ -153,7 +153,8 @@ int uart_obj_ioctl(uart_obj_id_t obj_id, uint32_t baudrate, uint32_t parity, uin
   {
     Error_Handler();
   }
-
+  HAL_UART_Receive_IT(obj->huart, &obj->rxbyte, 1);  //配置huart中断接收模式参数
+  __HAL_UART_ENABLE_IT(obj->huart, UART_IT_IDLE); 
   return 0;
 }
 
