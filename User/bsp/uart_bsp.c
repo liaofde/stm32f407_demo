@@ -12,6 +12,12 @@
 
 #define LOG_UART_HANDLE huart1
 
+enum
+{
+  _IDLE       = 0,
+  _BUSY       = 1,
+};
+
 /**************************************************************************************/
 /* Private function prototypes -----------------------------------------------*/
 #ifdef __GNUC__
@@ -42,105 +48,108 @@ static uart_obj_t uart_obj_tbl[UART_OBJ_NUM_MAX];
 
 int uart_obj_open(uart_obj_id_t obj_id, uint32_t baudrate, uint32_t parity, uint32_t databits, uint32_t stopbits)
 {
+  uart_obj_t *obj = &uart_obj_tbl[obj_id];
   if(obj_id >= UART_OBJ_NUM_MAX)
     return -1;
   
-  if(uart_obj_tbl[obj_id].rx_buffer == NULL)
+  if(obj->rx_buffer == NULL)
   {
-    if(uart_obj_tbl[obj_id].rx_buffer_size<64)
-      uart_obj_tbl[obj_id].rx_buffer_size = 64;
-    else if(uart_obj_tbl[obj_id].rx_buffer_size > 1024)
-      uart_obj_tbl[obj_id].rx_buffer_size = 1024;
-    uart_obj_tbl[obj_id].rx_buffer = xStreamBufferCreate( uart_obj_tbl[obj_id].rx_buffer_size, uart_obj_tbl[obj_id].rx_buffer_size/2 );
+    if(obj->rx_buffer_size<64)
+      obj->rx_buffer_size = 64;
+    else if(obj->rx_buffer_size > 1024)
+      obj->rx_buffer_size = 1024;
+    obj->rx_buffer = xStreamBufferCreate( obj->rx_buffer_size, obj->rx_buffer_size/2 );
   }
-  if( uart_obj_tbl[obj_id].rx_buffer == NULL )
+  if( obj->rx_buffer == NULL )
     return -1;
   
-  vSemaphoreCreateBinary(uart_obj_tbl[obj_id].rx_idle_semaph);
-  xSemaphoreTake( uart_obj_tbl[obj_id].rx_idle_semaph, ( TickType_t ) 0);
-  vSemaphoreCreateBinary(uart_obj_tbl[obj_id].tx_cplt_semaph);
+  vSemaphoreCreateBinary(obj->rx_sema);
+  xSemaphoreTake( obj->rx_sema, ( TickType_t ) 0);
+  vSemaphoreCreateBinary(obj->tx_sema);
 
-  if(uart_obj_tbl[obj_id].rs485_rxen) 
-    uart_obj_tbl[obj_id].rs485_rxen();
+  if(obj->rs485_rxen) 
+    obj->rs485_rxen();
 
 #ifdef UART1_OBJ_EN
   if(obj_id == UART1_OBJ) 
   {
-    uart_obj_tbl[obj_id].huart=&huart1;
-    uart_obj_tbl[obj_id].huart->Instance = USART1;
+    obj->huart=&huart1;
+    obj->huart->Instance = USART1;
   }
 #endif
 #ifdef UART2_OBJ_EN
   else if(obj_id == UART2_OBJ) 
   {
-    uart_obj_tbl[obj_id].huart=&huart2;
-    uart_obj_tbl[obj_id].huart->Instance = USART2;
+    obj->huart=&huart2;
+    obj->huart->Instance = USART2;
   }
 #endif
 #ifdef UART3_OBJ_EN
   else if(obj_id == UART3_OBJ) 
   {
-    uart_obj_tbl[obj_id].huart=&huart3;
-    uart_obj_tbl[obj_id].huart->Instance = USART3;
+    obj->huart=&huart3;
+    obj->huart->Instance = USART3;
   }
 #endif
 #ifdef UART4_OBJ_EN
   else if(obj_id == UART4_OBJ) 
   {
-    uart_obj_tbl[obj_id].huart=&huart4;
-    uart_obj_tbl[obj_id].huart->Instance = UART4;
+    obj->huart=&huart4;
+    obj->huart->Instance = UART4;
   }
 #endif
 #ifdef UART5_OBJ_EN
   else if(obj_id == UART5_OBJ) 
   {
-    uart_obj_tbl[obj_id].huart=&huart5;
-    uart_obj_tbl[obj_id].huart->Instance = UART5;
+    obj->huart=&huart5;
+    obj->huart->Instance = UART5;
   }
 #endif
 #ifdef UART6_OBJ_EN
   else if(obj_id == UART6_OBJ) 
   {
-    uart_obj_tbl[obj_id].huart=&huart6;
-    uart_obj_tbl[obj_id].huart->Instance = USART6;
+    obj->huart=&huart6;
+    obj->huart->Instance = USART6;
   }
 #endif
   
-  uart_obj_tbl[obj_id].huart->Init.BaudRate = baudrate;
-  uart_obj_tbl[obj_id].huart->Init.WordLength = databits;
-  uart_obj_tbl[obj_id].huart->Init.StopBits = stopbits;
-  uart_obj_tbl[obj_id].huart->Init.Parity = parity;
-  uart_obj_tbl[obj_id].huart->Init.Mode = UART_MODE_TX_RX;
-  uart_obj_tbl[obj_id].huart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  uart_obj_tbl[obj_id].huart->Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(uart_obj_tbl[obj_id].huart) != HAL_OK)
+  obj->huart->Init.BaudRate = baudrate;
+  obj->huart->Init.WordLength = databits;
+  obj->huart->Init.StopBits = stopbits;
+  obj->huart->Init.Parity = parity;
+  obj->huart->Init.Mode = UART_MODE_TX_RX;
+  obj->huart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  obj->huart->Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(obj->huart) != HAL_OK)
   {
     Error_Handler();
   }
   
-  HAL_UART_Receive_IT(uart_obj_tbl[obj_id].huart, &uart_obj_tbl[obj_id].rxbyte, 1);  //配置huart中断接收模式参数
-  __HAL_UART_ENABLE_IT(uart_obj_tbl[obj_id].huart, UART_IT_IDLE); 
+  HAL_UART_Receive_IT(obj->huart, &obj->rxbyte, 1);  //配置huart中断接收模式参数
+  __HAL_UART_ENABLE_IT(obj->huart, UART_IT_IDLE); 
   
   return 0;
 }
 
 void uart_obj_close(uart_obj_id_t obj_id)
 {
-  HAL_UART_DeInit(uart_obj_tbl[obj_id].huart);
-  vStreamBufferDelete(uart_obj_tbl[obj_id].rx_buffer);
-  uart_obj_tbl[obj_id].rx_buffer = NULL;
+  uart_obj_t *obj = &uart_obj_tbl[obj_id];
+  HAL_UART_DeInit(obj->huart);
+  vStreamBufferDelete(obj->rx_buffer);
+  obj->rx_buffer = NULL;
 }
 
 int uart_obj_ioctl(uart_obj_id_t obj_id, uint32_t baudrate, uint32_t parity, uint32_t databits, uint32_t stopbits)
 {
-  uart_obj_tbl[obj_id].huart->Init.BaudRate = baudrate;
-  uart_obj_tbl[obj_id].huart->Init.WordLength = databits;
-  uart_obj_tbl[obj_id].huart->Init.StopBits = stopbits;
-  uart_obj_tbl[obj_id].huart->Init.Parity = parity;
-  uart_obj_tbl[obj_id].huart->Init.Mode = UART_MODE_TX_RX;
-  uart_obj_tbl[obj_id].huart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  uart_obj_tbl[obj_id].huart->Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(uart_obj_tbl[obj_id].huart) != HAL_OK)
+  uart_obj_t *obj = &uart_obj_tbl[obj_id];
+  obj->huart->Init.BaudRate = baudrate;
+  obj->huart->Init.WordLength = databits;
+  obj->huart->Init.StopBits = stopbits;
+  obj->huart->Init.Parity = parity;
+  obj->huart->Init.Mode = UART_MODE_TX_RX;
+  obj->huart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  obj->huart->Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(obj->huart) != HAL_OK)
   {
     Error_Handler();
   }
@@ -150,44 +159,48 @@ int uart_obj_ioctl(uart_obj_id_t obj_id, uint32_t baudrate, uint32_t parity, uin
 
 int uart_obj_ioctl_rs485_register(uart_obj_id_t obj_id, void(*rs485_rxen)(void), void (*rs485_txen)(void) )
 {
+  uart_obj_t *obj = &uart_obj_tbl[obj_id];
   if(rs485_rxen != NULL)
-    uart_obj_tbl[obj_id].rs485_rxen = rs485_rxen;
+    obj->rs485_rxen = rs485_rxen;
   if(rs485_txen != NULL)
-    uart_obj_tbl[obj_id].rs485_txen = rs485_txen;
+    obj->rs485_txen = rs485_txen;
   return 0;
 }
 
 int uart_obj_ioctl_specific_rtx_isr_register(uart_obj_id_t obj_id, void(*specific_rx_isr)(void), void (*specific_tx_isr)(void) )
 {
+  uart_obj_t *obj = &uart_obj_tbl[obj_id];
   if(specific_rx_isr != NULL)
-    uart_obj_tbl[obj_id].specific_rx_isr = specific_rx_isr;
+    obj->specific_rx_isr = specific_rx_isr;
   if(specific_tx_isr != NULL)
-    uart_obj_tbl[obj_id].specific_tx_isr = specific_tx_isr;
+    obj->specific_tx_isr = specific_tx_isr;
   return 0;
 }
 
 int uart_obj_ioctl_get_info(uart_obj_id_t obj_id, uint32_t *baudrate, uint32_t *parity, uint32_t *databits, uint32_t *stopbits)
 {
-  *baudrate = uart_obj_tbl[obj_id].huart->Init.BaudRate;
-  *databits = uart_obj_tbl[obj_id].huart->Init.WordLength;
-  *stopbits = uart_obj_tbl[obj_id].huart->Init.StopBits;
-  *parity   = uart_obj_tbl[obj_id].huart->Init.Parity;
+  uart_obj_t *obj = &uart_obj_tbl[obj_id];
+  *baudrate = obj->huart->Init.BaudRate;
+  *databits = obj->huart->Init.WordLength;
+  *stopbits = obj->huart->Init.StopBits;
+  *parity   = obj->huart->Init.Parity;
   
   return 0;
 }
 
 int uart_obj_ioctl_alloc_rx_buffer(uart_obj_id_t obj_id, uint16_t size)
 {
+  uart_obj_t *obj = &uart_obj_tbl[obj_id];
   taskENTER_CRITICAL();
-  if(uart_obj_tbl[obj_id].rx_buffer)
+  if(obj->rx_buffer)
   {
-    vStreamBufferDelete(uart_obj_tbl[obj_id].rx_buffer);
+    vStreamBufferDelete(obj->rx_buffer);
   }
-  uart_obj_tbl[obj_id].rx_buffer_size = size;
-  uart_obj_tbl[obj_id].rx_buffer = xStreamBufferCreate( uart_obj_tbl[obj_id].rx_buffer_size, uart_obj_tbl[obj_id].rx_buffer_size/2 );
+  obj->rx_buffer_size = size;
+  obj->rx_buffer = xStreamBufferCreate( obj->rx_buffer_size, obj->rx_buffer_size/2 );
   taskEXIT_CRITICAL();
   
-  if( uart_obj_tbl[obj_id].rx_buffer == NULL )
+  if( obj->rx_buffer == NULL )
     return -1;
   
   return 0;
@@ -195,23 +208,24 @@ int uart_obj_ioctl_alloc_rx_buffer(uart_obj_id_t obj_id, uint16_t size)
 
 int uart_obj_read(uart_obj_id_t obj_id, uint8_t *buf, int size, uint32_t timeout)
 {
+  uart_obj_t *obj = &uart_obj_tbl[obj_id];
   int ret = 0;
-  SemaphoreHandle_t xSemaphore = uart_obj_tbl[obj_id].rx_idle_semaph;
+  SemaphoreHandle_t xSemaphore = obj->rx_sema;
   
   if( xSemaphore != NULL )
   {
     if(__get_IPSR() != 0)
     {
       //xSemaphoreTakeFromISR( xSemaphore, NULL);
-      ret = xStreamBufferReceiveFromISR( uart_obj_tbl[obj_id].rx_buffer, ( void * ) buf, size, 0 );
+      ret = xStreamBufferReceiveFromISR( obj->rx_buffer, ( void * ) buf, size, 0 );
     }
     else
     {
       if(xSemaphoreTake( xSemaphore, ( TickType_t ) timeout ) == pdTRUE)
       {  
-        ret = xStreamBufferReceive( uart_obj_tbl[obj_id].rx_buffer, ( void * ) buf, size, 0 );
-        if(xStreamBufferBytesAvailable( uart_obj_tbl[obj_id].rx_buffer ))
-          xSemaphoreGive( uart_obj_tbl[obj_id].rx_idle_semaph);
+        ret = xStreamBufferReceive( obj->rx_buffer, ( void * ) buf, size, 0 );
+        if(xStreamBufferBytesAvailable( obj->rx_buffer ))
+          xSemaphoreGive( obj->rx_sema);
       }
     }
   }
@@ -220,8 +234,9 @@ int uart_obj_read(uart_obj_id_t obj_id, uint8_t *buf, int size, uint32_t timeout
 
 int uart_obj_write(uart_obj_id_t obj_id, uint8_t *buf, int size)
 {
+  uart_obj_t *obj = &uart_obj_tbl[obj_id];
   int ret = 0;
-  SemaphoreHandle_t xSemaphore = uart_obj_tbl[obj_id].tx_cplt_semaph;
+  SemaphoreHandle_t xSemaphore = obj->tx_sema;
   uint8_t *tx_buff =  NULL;
   
   if( xSemaphore != NULL )
@@ -230,19 +245,19 @@ int uart_obj_write(uart_obj_id_t obj_id, uint8_t *buf, int size)
     {
       if( xSemaphoreTakeFromISR( xSemaphore, NULL ) == pdTRUE )
       {
-        tx_buff = uart_obj_tbl[obj_id].tx_buff;
+        tx_buff = obj->tx_buff;
         if(tx_buff == NULL)
           tx_buff = buf;
         else
-          memcpy(tx_buff,buf,uart_obj_tbl[obj_id].tx_buff_len>=size? size : uart_obj_tbl[obj_id].tx_buff_len);
+          memcpy(tx_buff,buf,obj->tx_buff_len>=size? size : obj->tx_buff_len);
       }
     }
     else
     {
       if( xSemaphoreTake( xSemaphore, ( TickType_t ) osWaitForever ) == pdTRUE )
       {
-        tx_buff = uart_obj_tbl[obj_id].tx_buff;
-        if(tx_buff != NULL && uart_obj_tbl[obj_id].tx_buff_len < size)
+        tx_buff = obj->tx_buff;
+        if(tx_buff != NULL && obj->tx_buff_len < size)
         {
           free(tx_buff);
           tx_buff = NULL;
@@ -250,8 +265,8 @@ int uart_obj_write(uart_obj_id_t obj_id, uint8_t *buf, int size)
         
         if(tx_buff == NULL)
         {
-          uart_obj_tbl[obj_id].tx_buff = tx_buff = malloc(size);
-          uart_obj_tbl[obj_id].tx_buff_len = size;
+          obj->tx_buff = tx_buff = malloc(size);
+          obj->tx_buff_len = size;
         }
         
         if(tx_buff != NULL)
@@ -267,79 +282,83 @@ int uart_obj_write(uart_obj_id_t obj_id, uint8_t *buf, int size)
   
   if(tx_buff)
   {
-    if(uart_obj_tbl[obj_id].rs485_txen) 
-      uart_obj_tbl[obj_id].rs485_txen();
-    uart_obj_tbl[obj_id].tx_busy = 1;
-    ret = HAL_UART_Transmit_IT(uart_obj_tbl[obj_id].huart, tx_buff, size);
+    if(obj->rs485_txen) 
+      obj->rs485_txen();
+    obj->tx_stat = _BUSY;
+    ret = HAL_UART_Transmit_IT(obj->huart, tx_buff, size);
   }
   else 
     ret=-1;
 
   if(ret == -1)
     size = 0;
-  
 
   return size;
 }
 
-uint8_t uart_obj_read_is_busy(uart_obj_id_t obj_id)
+int uart_obj_ioctl_is_rx_busy(uart_obj_id_t obj_id)
 {
-  return uart_obj_tbl[obj_id].rx_busy;
+  uart_obj_t *obj = &uart_obj_tbl[obj_id];
+  return obj->rx_stat;
 }
 
-uint8_t uart_obj_write_is_busy(uart_obj_id_t obj_id)
+int uart_obj_ioctl_is_tx_busy(uart_obj_id_t obj_id)
 {
-  return uart_obj_tbl[obj_id].tx_busy;
+  uart_obj_t *obj = &uart_obj_tbl[obj_id];
+  return obj->tx_stat;
 }
 
 void uart_obj_rxcplt_isr(uart_obj_id_t obj_id)
 {
+  uart_obj_t *obj = &uart_obj_tbl[obj_id];
   BaseType_t xHigherPriorityTaskWoken=pdFALSE;
   SemaphoreHandle_t xSemaphore;
 
-  uart_obj_tbl[obj_id].rx_busy = 1;
-  xStreamBufferSendFromISR(uart_obj_tbl[obj_id].rx_buffer, &uart_obj_tbl[obj_id].rxbyte, 1, &xHigherPriorityTaskWoken);
-  HAL_UART_Receive_IT(uart_obj_tbl[obj_id].huart, &uart_obj_tbl[obj_id].rxbyte, 1);
-  if(xStreamBufferBytesAvailable(uart_obj_tbl[obj_id].rx_buffer) >= (uart_obj_tbl[obj_id].rx_buffer_size>>1))
+  obj->rx_stat = _IDLE;
+  xStreamBufferSendFromISR(obj->rx_buffer, &obj->rxbyte, 1, &xHigherPriorityTaskWoken);
+  HAL_UART_Receive_IT(obj->huart, &obj->rxbyte, 1);
+  if(xStreamBufferBytesAvailable(obj->rx_buffer) >= (obj->rx_buffer_size>>1))
   {
-    xSemaphore = uart_obj_tbl[obj_id].rx_idle_semaph;
+    xSemaphore = obj->rx_sema;
     if(xSemaphore != NULL)
       xSemaphoreGiveFromISR( xSemaphore, &xHigherPriorityTaskWoken );
   }
-  if(uart_obj_tbl[obj_id].specific_rx_isr)
-    uart_obj_tbl[obj_id].specific_rx_isr();
+  if(obj->specific_rx_isr)
+    obj->specific_rx_isr();
   
   portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
 
 void uart_obj_rxidle_isr(uart_obj_id_t obj_id)
 {
+  uart_obj_t *obj = &uart_obj_tbl[obj_id];
   BaseType_t xHigherPriorityTaskWoken=pdFALSE;
   SemaphoreHandle_t xSemaphore;
   
-  HAL_UART_Receive_IT(uart_obj_tbl[obj_id].huart, &uart_obj_tbl[obj_id].rxbyte, 1);
-  xSemaphore = uart_obj_tbl[obj_id].rx_idle_semaph;
+  HAL_UART_Receive_IT(obj->huart, &obj->rxbyte, 1);
+  xSemaphore = obj->rx_sema;
   if(xSemaphore != NULL)
     xSemaphoreGiveFromISR( xSemaphore, &xHigherPriorityTaskWoken );
-  uart_obj_tbl[obj_id].rx_busy = 0;
+  obj->rx_stat = _BUSY;
   
   portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
 
 void uart_obj_txcplt_isr(uart_obj_id_t obj_id)
 {
+  uart_obj_t *obj = &uart_obj_tbl[obj_id];
   BaseType_t xHigherPriorityTaskWoken=pdFALSE;
   SemaphoreHandle_t xSemaphore;
   
-  if(uart_obj_tbl[obj_id].rs485_rxen) 
-    uart_obj_tbl[obj_id].rs485_rxen();
+  if(obj->rs485_rxen) 
+    obj->rs485_rxen();
   /* Unblock the task by releasing the semaphore. */
-  uart_obj_tbl[obj_id].tx_busy = 0;
-  xSemaphore = uart_obj_tbl[obj_id].tx_cplt_semaph;
+  obj->tx_stat = _IDLE;
+  xSemaphore = obj->tx_sema;
   if(xSemaphore != NULL)
     xSemaphoreGiveFromISR( xSemaphore, &xHigherPriorityTaskWoken );
-  if(uart_obj_tbl[obj_id].specific_tx_isr)
-    uart_obj_tbl[obj_id].specific_tx_isr();
+  if(obj->specific_tx_isr)
+    obj->specific_tx_isr();
 
   portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
