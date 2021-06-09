@@ -15,6 +15,7 @@
 #include "cmsis_os.h"
 #include "utils_userdef.h"
 #include "can_common_api.h"
+#include "can_bsp.h"
 
 //#include "stm32fxx_can_user_bsp.h"
 
@@ -39,6 +40,8 @@ static  osMutexId     m_mutex = NULL;
   */
 void canopen_dispatch_thread_entry(void)
 {		
+  can_obj_open(CAN1_OBJ, CAN_KBAUD_1000K);
+  can_obj_ioctl(CAN1_OBJ, CAN_KBAUD_500K);
   static osMailQDef(canmsg_mail,32,Message);
   static osThreadDef(can_dispatch,can_dispatch_thread,osPriorityHigh,1,1024);
   
@@ -87,8 +90,16 @@ unsigned char canSend(CAN_PORT CANx, Message *m)
   
   osMutexWait(m_mutex,osWaitForever);
   
-  int can1_send_date(uint32_t cob_id, uint8_t rtr, uint8_t data_size, uint8_t* data);
-  res = can1_send_date(m->cob_id, m->rtr, m->len, m->data);
+  //int can1_send_date(uint32_t cob_id, uint8_t rtr, uint8_t data_size, uint8_t* data);
+  //res = can1_send_date(m->cob_id, m->rtr, m->len, m->data);
+  
+  can_msg_t msg;
+  msg.Std_Ext_Id = m->cob_id;
+  msg.RTR = m->rtr;
+  msg.DLC = m->len;
+  msg.IDE =0;
+  memcpy(msg.BUF, m->data, m->len);
+  can_obj_write(CAN1_OBJ, (uint8_t *)&msg, sizeof(msg));
   
   CAN_PRINTF("can send[%04x,len:%d]:",(m->cob_id),m->len);
   for(uint8_t i=0;i<m->len;i++)
@@ -141,100 +152,32 @@ unsigned char canSend(CAN_PORT CANx, Message *m)
 #endif	
 }
 
-#if 0
-void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan1)
-{
-	unsigned int i = 0;	
-  if (hcan1->pRxMsg->StdId == 0x281)
-  {
-    //printf("recv pdo");
-  }
-
-  if(m_canmsg_mail)
-  {
-	Message  *obj = (Message*)osMailAlloc(m_canmsg_mail,osWaitForever);
-	if(obj)
-	{
-		memset(obj,0,sizeof(Message));
-
-		obj->cob_id = (uint16_t)(hcan1->pRxMsg->StdId);
-		obj->rtr    = hcan1->pRxMsg->RTR;
-		obj->len    = hcan1->pRxMsg->DLC;
-
-		for(i=0;i<hcan1->pRxMsg->DLC;i++)
-		{
-			obj->data[i] = hcan1->pRxMsg->Data[i];
-		}
-		
-
-		//canDispatch(CANOpenMasterObject, &(RxMSG));
-		osMailPut(m_canmsg_mail,obj);
-	}
-	else
-	{
-		;//printf("osMailAlloc fail![%s:%d]\r\n",__FILE__,__LINE__);
-	}
-  }
-
-  
-  /* Receive */
-  if(HAL_CAN_Receive_IT(hcan1, CAN_FIFO0) != HAL_OK)
-  {
-    /* Reception Error */
-		;//printf("HAL_CAN_Receive_IT error!\r\n");
-  }
-}
-#endif
-
-extern void can1_config(void);
-
 static void can_dispatch_thread(const void *arg)
 {
-  osEvent evt;
-
-  can1_config();
+  can_msg_t msg;
   
   while(1)
   {
-    evt = osMailGet(m_canmsg_mail,osWaitForever);
-    if(evt.status == osEventMail)
+    if(can_obj_read (CAN1_OBJ, (uint8_t *)&msg, sizeof(msg), osWaitForever)>0)
     {
-      Message *obj = (Message*)evt.value.p;
+      Message obj;
+
+      obj.cob_id = msg.Std_Ext_Id;
+      obj.rtr    = msg.RTR;
+      obj.len    = msg.DLC;
+      for(int i=0;i<obj.len&&i<=8;i++)
+      {  
+        obj.data[i]=msg.BUF[i];
+      }
+      
       CO_Data* d;
       CO_Data* can_open_NodeID_CO_Data_get( UNS8 nodeId);
-      if((d = can_open_NodeID_CO_Data_get((obj->cob_id &0x7F))) != NULL)
+      if((d = can_open_NodeID_CO_Data_get((obj.cob_id &0x7F))) != NULL)
       {
-        canDispatch(d, obj);
+        canDispatch(d, &obj);
       }
-      osMailFree(m_canmsg_mail,obj);
     }
+    
   }
-#if 0
-	osEvent evt;
-	while(1)
-	{
-		evt = osMailGet(m_canmsg_mail,osWaitForever);
-		if(evt.status == osEventMail)
-		{
-			Message *obj = (Message*)evt.value.p;
-			if((obj->cob_id &0x7F)== 0x02)
-			{
-				int i;
-				CAN_PRINTF("can recv[%04x,len:%d]:",obj->cob_id,obj->len);
-				for(i=0; i < obj->len; i++)
-				{
-					CAN_PRINTF("%02x ",obj->data[i]);
-				}
-				CAN_PRINTF("\r\n");
-				canDispatch(LifterMasterObject,obj);
-			}
-			else
-			{
-				canDispatch(CANOpenMasterObject, obj);
-			}
-			osMailFree(m_canmsg_mail,obj);
-		}
-        }
-  }
-#endif
+
 }
