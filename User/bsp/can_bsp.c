@@ -3,18 +3,7 @@
 
 extern CAN_HandleTypeDef hcan1;
 
-//CAN_TxHeaderTypeDef TxHeader;
-//CAN_RxHeaderTypeDef RxHeader;
-
-uint8_t TxData[8];
-uint8_t RxData[8];
-uint32_t TxMailbox;
-
 can_obj_t can_obj[CAN_OBJ_NUM];
-
-#define CAN_HEARTBEAT_ID  0x700
-#define CAN_SDO_TX_ID     0x600
-#define CAN_SDO_RX_ID     0x580
 
 static osMailQDef(can_msg,32,can_msg_t);
 
@@ -153,7 +142,7 @@ int can_obj_write(can_obj_id_t obj_id, uint8_t *buf, int size)
   {
     return -1;
   }
-  
+  uint32_t TxMailbox;
   if(HAL_CAN_AddTxMessage(hcan, &TxHeader, TxData, &TxMailbox) != HAL_OK)
     return -1;
   
